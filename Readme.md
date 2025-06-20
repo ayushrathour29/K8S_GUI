@@ -1,6 +1,6 @@
 
 The Dashboard of Kubernetes Task Manager
-![alt text](image.png)
+image.png
 
 
 
