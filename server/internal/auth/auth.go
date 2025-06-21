@@ -10,15 +10,15 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-var jwtKey = []byte("secret_key") // In production, use environment variable
+var jwtKey = []byte("secret_key") 
 
-// Claims defines JWT claims structure
+
 type Claims struct {
 	Username string `json:"username"`
 	jwt.RegisteredClaims
 }
 
-// HandleLogin authenticates a user
+
 func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	var creds struct {
 		Username string `json:"username"`
@@ -50,13 +50,13 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println("Generated Token:", tokenString) // Debug log
+	fmt.Println("Generated Token:", tokenString) 
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"token": tokenString})
 }
 
-// VerifyToken checks token validity
+
 func VerifyToken(w http.ResponseWriter, r *http.Request) {
 	tokenString := r.Header.Get("Authorization")
 	if tokenString == "" {

@@ -9,6 +9,7 @@ import (
 
 	"k8_gui/internal/api"
 	"k8_gui/internal/auth"
+
 	metricsclientset "k8s.io/metrics/pkg/client/clientset/versioned"
 )
 
@@ -18,7 +19,7 @@ func NewRouter(clientset *kubernetes.Clientset, metricsClient *metricsclientset.
 
 	//  Public routes
 	router.HandleFunc("/api/login", auth.HandleLogin).Methods("POST")
-	router.HandleFunc("/api/verify", api.VerifyToken).Methods("GET")
+	router.HandleFunc("/api/verify", auth.VerifyToken).Methods("GET")
 
 	// Protected subrouter
 	protected := router.PathPrefix("/api").Subrouter()
