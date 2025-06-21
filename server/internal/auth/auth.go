@@ -4,13 +4,21 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 )
 
-var jwtKey = []byte("secret_key") // In production, use environment variable
+// getJWTSecret returns the JWT secret from environment variable or a default value
+func getJWTSecret() []byte {
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		secret = "default_secret_key_change_in_production"
+	}
+	return []byte(secret)
+}
 
 // Claims defines JWT claims structure
 type Claims struct {
@@ -44,7 +52,7 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenString, err := token.SignedString(jwtKey)
+	tokenString, err := token.SignedString(getJWTSecret())
 	if err != nil {
 		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
 		return
@@ -58,26 +66,46 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 
 // VerifyToken checks token validity
 func VerifyToken(w http.ResponseWriter, r *http.Request) {
-	tokenString := r.Header.Get("Authorization")
-	if tokenString == "" {
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
 		http.Error(w, "Authorization header required", http.StatusUnauthorized)
+		return
+	}
+
+	// Remove "Bearer " prefix if present
+	tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+	if tokenString == authHeader {
+		// No Bearer prefix found, use the header as is
+		tokenString = authHeader
+	}
+
+	if tokenString == "" {
+		http.Error(w, "Token required", http.StatusUnauthorized)
 		return
 	}
 
 	claims := &Claims{}
 	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
-		return jwtKey, nil
+		return getJWTSecret(), nil
 	})
 
-	if err != nil || !token.Valid {
+	if err != nil {
+		fmt.Printf("Token parsing error: %v\n", err)
 		http.Error(w, "Invalid token", http.StatusUnauthorized)
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-}
+	if !token.Valid {
+		fmt.Printf("Token is invalid\n")
+		http.Error(w, "Invalid token", http.StatusUnauthorized)
+		return
+	}
 
-var jwtSecret = []byte("secret_key")
+	fmt.Printf("Token validated successfully for user: %s\n", claims.Username)
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"status": "valid", "username": claims.Username})
+}
 
 func ValidateJWTMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -92,7 +120,7 @@ func ValidateJWTMiddleware(next http.Handler) http.Handler {
 		claims := &Claims{}
 
 		token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
-			return jwtSecret, nil
+			return getJWTSecret(), nil
 		})
 
 		if err != nil || !token.Valid {

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
-import { createTheme, ThemeProvider, CssBaseline, Box, Toolbar } from '@mui/material';
+import { createTheme, ThemeProvider, CssBaseline, Box, Toolbar, CircularProgress } from '@mui/material';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import Login from './components/Login';
@@ -13,6 +13,7 @@ import Namespaces from './pages/Namespaces';
 import Events from './pages/Events';
 import Metrics from './pages/Metrics';
 import { Toaster } from 'sonner';
+import useSession from './hooks/useSession';
 
 const theme = createTheme({
   palette: {
@@ -34,29 +35,44 @@ const theme = createTheme({
 });
 
 const App = () => {
-  const [token, setToken] = useState(localStorage.getItem('k8s-token'));
+  const { token, isAuthenticated, isValidating, login, logout } = useSession();
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
-  const handleLogin = (newToken) => {
-    localStorage.setItem('k8s-token', newToken);
-    setToken(newToken);
-  };
-
   const handleLogout = () => {
-    localStorage.removeItem('k8s-token');
-    setToken(null);
+    logout('manual');
   };
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
   };
 
-  if (!token) {
+  // Show loading while validating session
+  if (isValidating) {
     return (
       <ThemeProvider theme={theme}>
         <CssBaseline />
         <Toaster richColors position="top-right" />
-        <Login onLogin={handleLogin} />
+        <Box 
+          sx={{ 
+            display: 'flex', 
+            justifyContent: 'center', 
+            alignItems: 'center', 
+            height: '100vh' 
+          }}
+        >
+          <CircularProgress size={60} />
+        </Box>
+      </ThemeProvider>
+    );
+  }
+
+  // Show login if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <Toaster richColors position="top-right" />
+        <Login onLogin={login} />
       </ThemeProvider>
     );
   }

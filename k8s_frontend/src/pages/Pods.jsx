@@ -4,6 +4,7 @@ import { Button, CircularProgress, Box, Typography, Chip, IconButton, Tooltip, D
 import { Delete, Description, Terminal, Visibility } from '@mui/icons-material';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
+import useSession from '../hooks/useSession';
 
 const getStatusChip = (params) => {
   const { status } = params.row;
@@ -31,22 +32,27 @@ const PodLogsModal = ({ open, onClose, namespace, name }) => {
   const [logs, setLogs] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const { authenticatedFetch } = useSession();
 
   useEffect(() => {
     if (!open || !namespace || !name) return;
     setLoading(true);
     setError(null);
     setLogs('');
-    const token = localStorage.getItem('k8s-token');
-    fetch(`/api/pods/${namespace}/${name}/logs`, { headers: { 'Authorization': `Bearer ${token}` } })
+    
+    authenticatedFetch(`/api/pods/${namespace}/${name}/logs`)
       .then(res => {
         if (!res.ok) throw new Error('Failed to fetch pod logs');
         return res.text();
       })
       .then(data => setLogs(data))
-      .catch(err => setError(err.message))
+      .catch(err => {
+        if (err.message !== 'Session expired') {
+          setError(err.message);
+        }
+      })
       .finally(() => setLoading(false));
-  }, [open, namespace, name]);
+  }, [open, namespace, name, authenticatedFetch]);
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
@@ -69,22 +75,27 @@ const PodDetailsModal = ({ open, onClose, namespace, name }) => {
   const [pod, setPod] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const { authenticatedFetch } = useSession();
 
   useEffect(() => {
     if (!open || !namespace || !name) return;
     setLoading(true);
     setError(null);
     setPod(null);
-    const token = localStorage.getItem('k8s-token');
-    fetch(`/api/pods/${namespace}/${name}`, { headers: { 'Authorization': `Bearer ${token}` } })
+    
+    authenticatedFetch(`/api/pods/${namespace}/${name}`)
       .then(res => {
         if (!res.ok) throw new Error('Failed to fetch pod details');
         return res.json();
       })
       .then(data => setPod(data))
-      .catch(err => setError(err.message))
+      .catch(err => {
+        if (err.message !== 'Session expired') {
+          setError(err.message);
+        }
+      })
       .finally(() => setLoading(false));
-  }, [open, namespace, name]);
+  }, [open, namespace, name, authenticatedFetch]);
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
@@ -118,12 +129,13 @@ const Pods = () => {
   const [loading, setLoading] = useState(true);
   const [logsModal, setLogsModal] = useState({ open: false, namespace: '', name: '' });
   const [detailsModal, setDetailsModal] = useState({ open: false, namespace: '', name: '' });
+  
+  const { authenticatedFetch } = useSession();
 
   const fetchPods = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('k8s-token');
-      const response = await fetch('/api/pods', { headers: { 'Authorization': `Bearer ${token}` } });
+      const response = await authenticatedFetch('/api/pods');
       if (response.ok) {
         const data = await response.json();
         setPods(data.items || []);
@@ -131,7 +143,9 @@ const Pods = () => {
         toast.error('Failed to fetch pods');
       }
     } catch (error) {
-      toast.error('Error fetching pods: ' + error.message);
+      if (error.message !== 'Session expired') {
+        toast.error('Error fetching pods: ' + error.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -143,10 +157,8 @@ const Pods = () => {
 
   const handleDelete = async (namespace, name) => {
     try {
-      const token = localStorage.getItem('k8s-token');
-      const response = await fetch(`/api/pods/${namespace}/${name}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
+      const response = await authenticatedFetch(`/api/pods/${namespace}/${name}`, {
+        method: 'DELETE'
       });
       if (response.ok) {
         toast.success(`Pod ${name} deleted successfully`);
@@ -155,7 +167,9 @@ const Pods = () => {
         toast.error('Failed to delete pod');
       }
     } catch (error) {
-      toast.error('Error deleting pod: ' + error.message);
+      if (error.message !== 'Session expired') {
+        toast.error('Error deleting pod: ' + error.message);
+      }
     }
   };
 

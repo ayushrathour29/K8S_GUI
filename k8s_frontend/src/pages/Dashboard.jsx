@@ -29,10 +29,25 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
+        const token = localStorage.getItem('k8s-token');
+        console.log('Token from localStorage:', token);
+        
         const endpoints = ['pods', 'deployments', 'services', 'nodes', 'namespaces', 'events'];
-        const requests = endpoints.map(ep => fetch(`/api/${ep}`, { headers: getAuthHeaders() }));
+        const requests = endpoints.map(ep => {
+          console.log(`Making request to /api/${ep}`);
+          return fetch(`/api/${ep}`, { headers: getAuthHeaders() });
+        });
         const responses = await Promise.all(requests);
+        
+        responses.forEach((res, index) => {
+          console.log(`Response for ${endpoints[index]}:`, res.status, res.statusText);
+        });
+        
         const data = await Promise.all(responses.map(res => res.ok ? res.json() : { items: [] }));
+        
+        data.forEach((item, index) => {
+          console.log(`Data for ${endpoints[index]}:`, item);
+        });
         
         setStats({
           pods: data[0].items?.length || 0,
@@ -43,6 +58,7 @@ const Dashboard = () => {
           events: data[5].items?.length || 0,
         });
       } catch (error) {
+        console.error('Dashboard fetch error:', error);
         toast.error('Failed to load dashboard data');
       } finally {
         setLoading(false);

@@ -12,20 +12,35 @@ const Login = ({ onLogin }) => {
     setLoading(true);
 
     try {
+      console.log('Attempting login with credentials:', { username: credentials.username, password: '***' });
       const response = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(credentials)
       });
 
+      console.log('Login response status:', response.status);
+      
       if (response.ok) {
         const data = await response.json();
-        onLogin(data.token);
-        toast.success('Login successful!');
+        console.log('Login successful, token received:', data.token ? 'Token present' : 'No token');
+        console.log('Token length:', data.token ? data.token.length : 0);
+        
+        if (data.token) {
+          onLogin(data.token);
+          toast.success('Login successful!');
+        } else {
+          console.error('No token in response');
+          toast.error('Login failed: No token received');
+        }
       } else {
+        console.log('Login failed with status:', response.status);
+        const errorText = await response.text();
+        console.log('Error response:', errorText);
         toast.error('Invalid credentials');
       }
     } catch (error) {
+      console.error('Login error:', error);
       toast.error('Connection failed. Please check if the server is running.');
     } finally {
       setLoading(false);
