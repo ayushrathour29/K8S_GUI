@@ -45,7 +45,9 @@ func ListServices(clientset *kubernetes.Clientset) http.HandlerFunc {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			log.Printf("Failed to encode services list: %v", err)
+		}
 	}
 }
 
@@ -81,7 +83,9 @@ func GetService(clientset *kubernetes.Clientset) http.HandlerFunc {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			log.Printf("Failed to encode service: %v", err)
+		}
 	}
 }
 
@@ -123,7 +127,9 @@ func CreateService(clientset *kubernetes.Clientset) http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(created)
+		if err := json.NewEncoder(w).Encode(created); err != nil {
+			log.Printf("Failed to encode created service: %v", err)
+		}
 	}
 }
 

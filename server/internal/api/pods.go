@@ -6,6 +6,7 @@ import (
 	"k8_gui/internal/models"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -50,7 +51,9 @@ func ListPods(clientset *kubernetes.Clientset) http.HandlerFunc {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			log.Printf("Failed to encode pods list: %v", err)
+		}
 	}
 }
 
@@ -91,7 +94,9 @@ func GetPod(clientset *kubernetes.Clientset) http.HandlerFunc {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			log.Printf("Failed to encode pod: %v", err)
+		}
 	}
 }
 
@@ -123,9 +128,12 @@ func GetPodLogs(clientset *kubernetes.Clientset) http.HandlerFunc {
 		// Get query parameters for log options
 		tailLines := int64(100) // Default to last 100 lines
 		if tail := r.URL.Query().Get("tail"); tail != "" {
-			if parsed, err := parseTailLines(tail); err == nil {
-				tailLines = parsed
+			parsed, err := parseTailLines(tail)
+			if err != nil {
+				http.Error(w, "Invalid 'tail' parameter", http.StatusBadRequest)
+				return
 			}
+			tailLines = parsed
 		}
 
 		logs, err := clientset.CoreV1().Pods(namespace).GetLogs(name, &corev1.PodLogOptions{
@@ -138,15 +146,20 @@ func GetPodLogs(clientset *kubernetes.Clientset) http.HandlerFunc {
 		}
 
 		w.Header().Set("Content-Type", "text/plain")
-		w.Write(logs)
+		if _, err := w.Write(logs); err != nil {
+			log.Printf("Failed to write pod logs to response: %v", err)
+		}
 	}
 }
 
 // Helper function to parse tail lines parameter
 func parseTailLines(tail string) (int64, error) {
-	// Implementation for parsing tail lines
-	// This is a simplified version - you might want to add proper validation
-	var result int64
-	_, err := fmt.Sscanf(tail, "%d", &result)
-	return result, err
+	if tail == "" {
+		return 0, nil
+	}
+	result, err := strconv.ParseInt(tail, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("invalid value for tail: %s", tail)
+	}
+	return result, nil
 }

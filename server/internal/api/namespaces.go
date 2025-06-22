@@ -34,7 +34,9 @@ func ListNamespaces(clientset *kubernetes.Clientset) http.HandlerFunc {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			log.Printf("Failed to encode namespaces list: %v", err)
+		}
 	}
 }
 
@@ -59,7 +61,9 @@ func GetNamespace(clientset *kubernetes.Clientset) http.HandlerFunc {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			log.Printf("Failed to encode namespace: %v", err)
+		}
 	}
 }
 
@@ -88,7 +92,9 @@ func CreateNamespace(clientset *kubernetes.Clientset) http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(created)
+		if err := json.NewEncoder(w).Encode(created); err != nil {
+			log.Printf("Failed to encode created namespace: %v", err)
+		}
 	}
 }
 

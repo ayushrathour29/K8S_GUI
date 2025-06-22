@@ -47,7 +47,9 @@ func ListNodes(clientset *kubernetes.Clientset) http.HandlerFunc {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			log.Printf("Failed to encode nodes list: %v", err)
+		}
 	}
 }
 
@@ -86,6 +88,8 @@ func GetNode(clientset *kubernetes.Clientset) http.HandlerFunc {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			log.Printf("Failed to encode node: %v", err)
+		}
 	}
 }

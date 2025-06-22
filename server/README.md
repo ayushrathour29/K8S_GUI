@@ -66,7 +66,7 @@ server/
 1. Clone the repository:
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/ayushrathour29/K8S_GUI.git
 cd k8s_GUI/server
 ```
 

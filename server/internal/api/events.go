@@ -38,7 +38,9 @@ func ListEvents(clientset *kubernetes.Clientset) http.HandlerFunc {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			log.Printf("Failed to encode events list: %v", err)
+		}
 	}
 }
 
@@ -71,6 +73,8 @@ func ListEventsByNamespace(clientset *kubernetes.Clientset) http.HandlerFunc {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			log.Printf("Failed to encode events list for namespace: %v", err)
+		}
 	}
 }

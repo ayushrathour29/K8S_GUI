@@ -40,7 +40,9 @@ func GetNodeMetrics(clientset *kubernetes.Clientset, metricsClient metricsclient
 				Timestamp: time.Now(),
 			}
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(response)
+			if err := json.NewEncoder(w).Encode(response); err != nil {
+				log.Printf("Failed to encode node metrics error response: %v", err)
+			}
 			return
 		}
 
@@ -74,7 +76,9 @@ func GetNodeMetrics(clientset *kubernetes.Clientset, metricsClient metricsclient
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			log.Printf("Failed to encode node metrics: %v", err)
+		}
 	}
 }
 
@@ -112,7 +116,9 @@ func GetNodesMetrics(metricsClient metricsclientset.Interface) http.HandlerFunc 
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			log.Printf("Failed to encode node metrics list: %v", err)
+		}
 	}
 }
 
@@ -173,7 +179,9 @@ func GetPodsMetrics(metricsClient metricsclientset.Interface) http.HandlerFunc {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			log.Printf("Failed to encode pod metrics list: %v", err)
+		}
 	}
 }
 
@@ -237,6 +245,8 @@ func GetPodMetricsByNamespace(metricsClient metricsclientset.Interface) http.Han
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			log.Printf("Failed to encode pod metrics list for namespace: %v", err)
+		}
 	}
 }

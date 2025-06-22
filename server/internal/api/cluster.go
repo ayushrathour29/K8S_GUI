@@ -36,7 +36,9 @@ func GetClusters(clientset *kubernetes.Clientset) http.HandlerFunc {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(clusterInfo)
+		if err := json.NewEncoder(w).Encode(clusterInfo); err != nil {
+			log.Printf("Failed to encode cluster info: %v", err)
+		}
 	}
 }
 
@@ -94,7 +96,9 @@ func GetClusterHealth(clientset *kubernetes.Clientset) http.HandlerFunc {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(healthStatus)
+		if err := json.NewEncoder(w).Encode(healthStatus); err != nil {
+			log.Printf("Failed to encode cluster health: %v", err)
+		}
 	}
 }
 
@@ -119,6 +123,8 @@ func GetClusterVersion(clientset *kubernetes.Clientset) http.HandlerFunc {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(versionInfo)
+		if err := json.NewEncoder(w).Encode(versionInfo); err != nil {
+			log.Printf("Failed to encode cluster version: %v", err)
+		}
 	}
 }
