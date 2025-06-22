@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"k8_gui/internal/models"
 	"log"
 	"net/http"
 	"time"
@@ -10,25 +11,8 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
 )
-
-// Deployment represents a simplified deployment view
-type Deployment struct {
-	Name              string            `json:"name"`
-	Namespace         string            `json:"namespace"`
-	Replicas          int32             `json:"replicas"`
-	AvailableReplicas int32             `json:"availableReplicas"`
-	CreatedAt         string            `json:"createdAt"`
-	Strategy          string            `json:"strategy"`
-	Labels            map[string]string `json:"labels,omitempty"`
-}
-
-// DeploymentListResponse represents deployment list response
-type DeploymentListResponse struct {
-	Items []Deployment `json:"items"`
-}
 
 // ListDeployments returns all deployments
 func ListDeployments(clientset *kubernetes.Clientset) http.HandlerFunc {
@@ -40,9 +24,9 @@ func ListDeployments(clientset *kubernetes.Clientset) http.HandlerFunc {
 			return
 		}
 
-		response := DeploymentListResponse{Items: make([]Deployment, 0, len(deployments.Items))}
+		response := models.DeploymentListResponse{Items: make([]models.Deployment, 0, len(deployments.Items))}
 		for _, d := range deployments.Items {
-			response.Items = append(response.Items, Deployment{
+			response.Items = append(response.Items, models.Deployment{
 				Name:              d.Name,
 				Namespace:         d.Namespace,
 				Replicas:          *d.Spec.Replicas,
@@ -72,7 +56,7 @@ func GetDeployment(clientset *kubernetes.Clientset) http.HandlerFunc {
 			return
 		}
 
-		response := Deployment{
+		response := models.Deployment{
 			Name:              deployment.Name,
 			Namespace:         deployment.Namespace,
 			Replicas:          *deployment.Spec.Replicas,
@@ -90,15 +74,7 @@ func GetDeployment(clientset *kubernetes.Clientset) http.HandlerFunc {
 // CreateDeployment creates a new deployment
 func CreateDeployment(clientset *kubernetes.Clientset) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		type Request struct {
-			Name      string `json:"name"`
-			Namespace string `json:"namespace"`
-			Image     string `json:"image"`
-			Replicas  int32  `json:"replicas"`
-			Port      int32  `json:"port"`
-		}
-
-		var req Request
+		var req models.CreateDeploymentRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			http.Error(w, "Invalid request body", http.StatusBadRequest)
 			return
@@ -159,12 +135,7 @@ func UpdateDeployment(clientset *kubernetes.Clientset) http.HandlerFunc {
 		namespace := vars["namespace"]
 		name := vars["name"]
 
-		type Request struct {
-			Image    string `json:"image"`
-			Replicas int32  `json:"replicas"`
-		}
-
-		var req Request
+		var req models.UpdateDeploymentRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			http.Error(w, "Invalid request body", http.StatusBadRequest)
 			return
@@ -213,9 +184,4 @@ func DeleteDeployment(clientset *kubernetes.Clientset) http.HandlerFunc {
 
 		w.WriteHeader(http.StatusNoContent)
 	}
-}
-
-// Helper function to convert int32 to IntOrString
-func intstrFromInt(i int32) intstr.IntOrString {
-	return intstr.FromInt(int(i))
 }

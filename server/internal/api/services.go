@@ -2,6 +2,8 @@ package api
 
 import (
 	"encoding/json"
+	"k8_gui/internal/models"
+	"k8_gui/internal/utils"
 	"log"
 	"net/http"
 	"time"
@@ -11,27 +13,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
-
-// Service represents a simplified service view
-type Service struct {
-	Name      string        `json:"name"`
-	Namespace string        `json:"namespace"`
-	Type      string        `json:"type"`
-	ClusterIP string        `json:"clusterIP"`
-	Ports     []ServicePort `json:"ports"`
-	CreatedAt string        `json:"createdAt"`
-}
-
-// ServicePort represents service port information
-type ServicePort struct {
-	Port     int32  `json:"port"`
-	Protocol string `json:"protocol"`
-}
-
-// ServiceListResponse represents service list response
-type ServiceListResponse struct {
-	Items []Service `json:"items"`
-}
 
 // ListServices returns all services
 func ListServices(clientset *kubernetes.Clientset) http.HandlerFunc {
@@ -43,17 +24,17 @@ func ListServices(clientset *kubernetes.Clientset) http.HandlerFunc {
 			return
 		}
 
-		response := ServiceListResponse{Items: make([]Service, 0, len(services.Items))}
+		response := models.ServiceListResponse{Items: make([]models.Service, 0, len(services.Items))}
 		for _, s := range services.Items {
-			ports := make([]ServicePort, len(s.Spec.Ports))
+			ports := make([]models.ServicePort, len(s.Spec.Ports))
 			for i, p := range s.Spec.Ports {
-				ports[i] = ServicePort{
+				ports[i] = models.ServicePort{
 					Port:     p.Port,
 					Protocol: string(p.Protocol),
 				}
 			}
 
-			response.Items = append(response.Items, Service{
+			response.Items = append(response.Items, models.Service{
 				Name:      s.Name,
 				Namespace: s.Namespace,
 				Type:      string(s.Spec.Type),
@@ -82,15 +63,15 @@ func GetService(clientset *kubernetes.Clientset) http.HandlerFunc {
 			return
 		}
 
-		ports := make([]ServicePort, len(service.Spec.Ports))
+		ports := make([]models.ServicePort, len(service.Spec.Ports))
 		for i, p := range service.Spec.Ports {
-			ports[i] = ServicePort{
+			ports[i] = models.ServicePort{
 				Port:     p.Port,
 				Protocol: string(p.Protocol),
 			}
 		}
 
-		response := Service{
+		response := models.Service{
 			Name:      service.Name,
 			Namespace: service.Namespace,
 			Type:      string(service.Spec.Type),
@@ -107,14 +88,7 @@ func GetService(clientset *kubernetes.Clientset) http.HandlerFunc {
 // CreateService creates a new service
 func CreateService(clientset *kubernetes.Clientset) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		type Request struct {
-			Name       string `json:"name"`
-			Namespace  string `json:"namespace"`
-			Port       int32  `json:"port"`
-			TargetPort int32  `json:"targetPort"`
-		}
-
-		var req Request
+		var req models.CreateServiceRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			http.Error(w, "Invalid request body", http.StatusBadRequest)
 			return
@@ -132,7 +106,7 @@ func CreateService(clientset *kubernetes.Clientset) http.HandlerFunc {
 				Ports: []corev1.ServicePort{
 					{
 						Port:       req.Port,
-						TargetPort: intstrFromInt(req.TargetPort),
+						TargetPort: utils.IntstrFromInt(req.TargetPort),
 						Protocol:   corev1.ProtocolTCP,
 					},
 				},

@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"k8_gui/internal/models"
 	"log"
 	"net/http"
 	"time"
@@ -13,53 +14,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	metricsclientset "k8s.io/metrics/pkg/client/clientset/versioned"
 )
-
-// NodeMetrics represents node metrics
-type NodeMetrics struct {
-	NodeName  string             `json:"nodeName"`
-	CPU       NodeResourceMetric `json:"cpu"`
-	Memory    NodeResourceMetric `json:"memory"`
-	Timestamp time.Time          `json:"timestamp"`
-	Window    string             `json:"window"`
-	Available bool               `json:"available"`
-	Message   string             `json:"message,omitempty"`
-}
-
-// NodeResourceMetric represents resource metric
-type NodeResourceMetric struct {
-	Value      string  `json:"value"`
-	Quantity   int64   `json:"quantity"`
-	Percentage float64 `json:"percentage,omitempty"`
-	Unit       string  `json:"unit"`
-}
-
-// PodMetrics represents pod metrics
-type PodMetrics struct {
-	PodName    string             `json:"podName"`
-	Namespace  string             `json:"namespace"`
-	Containers []ContainerMetrics `json:"containers"`
-	CPU        NodeResourceMetric `json:"cpu"`
-	Memory     NodeResourceMetric `json:"memory"`
-	Timestamp  time.Time          `json:"timestamp"`
-	Window     string             `json:"window"`
-}
-
-// ContainerMetrics represents container metrics
-type ContainerMetrics struct {
-	Name   string             `json:"name"`
-	CPU    NodeResourceMetric `json:"cpu"`
-	Memory NodeResourceMetric `json:"memory"`
-}
-
-// NodeMetricsListResponse represents node metrics list response
-type NodeMetricsListResponse struct {
-	Items []NodeMetrics `json:"items"`
-}
-
-// PodMetricsListResponse represents pod metrics list response
-type PodMetricsListResponse struct {
-	Items []PodMetrics `json:"items"`
-}
 
 // GetNodeMetrics returns metrics for a specific node
 func GetNodeMetrics(clientset *kubernetes.Clientset, metricsClient metricsclientset.Interface) http.HandlerFunc {
@@ -79,7 +33,7 @@ func GetNodeMetrics(clientset *kubernetes.Clientset, metricsClient metricsclient
 		metrics, err := metricsClient.MetricsV1beta1().NodeMetricses().Get(r.Context(), nodeName, metav1.GetOptions{})
 		if err != nil {
 			log.Printf("Failed to get metrics for node %s: %v", nodeName, err)
-			response := NodeMetrics{
+			response := models.NodeMetrics{
 				NodeName:  nodeName,
 				Available: false,
 				Message:   "Metrics not available",
@@ -100,15 +54,15 @@ func GetNodeMetrics(clientset *kubernetes.Clientset, metricsClient metricsclient
 		memoryCapacity := node.Status.Capacity[corev1.ResourceMemory]
 		memoryPercentage := float64(memoryUsage.Value()) / float64(memoryCapacity.Value()) * 100
 
-		response := NodeMetrics{
+		response := models.NodeMetrics{
 			NodeName: nodeName,
-			CPU: NodeResourceMetric{
+			CPU: models.NodeResourceMetric{
 				Value:      cpuUsage.String(),
 				Quantity:   cpuUsage.MilliValue(),
 				Percentage: cpuPercentage,
 				Unit:       "m",
 			},
-			Memory: NodeResourceMetric{
+			Memory: models.NodeResourceMetric{
 				Value:      memoryUsage.String(),
 				Quantity:   memoryUsage.Value(),
 				Percentage: memoryPercentage,
@@ -134,19 +88,19 @@ func GetNodesMetrics(metricsClient metricsclientset.Interface) http.HandlerFunc 
 			return
 		}
 
-		response := NodeMetricsListResponse{Items: make([]NodeMetrics, 0, len(metrics.Items))}
+		response := models.NodeMetricsListResponse{Items: make([]models.NodeMetrics, 0, len(metrics.Items))}
 		for _, m := range metrics.Items {
 			cpuUsage := m.Usage[corev1.ResourceCPU]
 			memoryUsage := m.Usage[corev1.ResourceMemory]
 
-			response.Items = append(response.Items, NodeMetrics{
+			response.Items = append(response.Items, models.NodeMetrics{
 				NodeName: m.Name,
-				CPU: NodeResourceMetric{
+				CPU: models.NodeResourceMetric{
 					Value:    (&cpuUsage).String(),
 					Quantity: (&cpuUsage).MilliValue(),
 					Unit:     "m",
 				},
-				Memory: NodeResourceMetric{
+				Memory: models.NodeResourceMetric{
 					Value:    (&memoryUsage).String(),
 					Quantity: (&memoryUsage).Value(),
 					Unit:     "bytes",
@@ -172,9 +126,9 @@ func GetPodsMetrics(metricsClient metricsclientset.Interface) http.HandlerFunc {
 			return
 		}
 
-		response := PodMetricsListResponse{Items: make([]PodMetrics, 0, len(metrics.Items))}
+		response := models.PodMetricsListResponse{Items: make([]models.PodMetrics, 0, len(metrics.Items))}
 		for _, m := range metrics.Items {
-			containers := make([]ContainerMetrics, len(m.Containers))
+			containers := make([]models.ContainerMetrics, len(m.Containers))
 			totalCPU := resource.NewQuantity(0, resource.DecimalSI)
 			totalMemory := resource.NewQuantity(0, resource.BinarySI)
 
@@ -184,14 +138,14 @@ func GetPodsMetrics(metricsClient metricsclientset.Interface) http.HandlerFunc {
 				totalCPU.Add(cpu)
 				totalMemory.Add(memory)
 
-				containers[i] = ContainerMetrics{
+				containers[i] = models.ContainerMetrics{
 					Name: c.Name,
-					CPU: NodeResourceMetric{
+					CPU: models.NodeResourceMetric{
 						Value:    cpu.String(),
 						Quantity: cpu.MilliValue(),
 						Unit:     "m",
 					},
-					Memory: NodeResourceMetric{
+					Memory: models.NodeResourceMetric{
 						Value:    memory.String(),
 						Quantity: memory.Value(),
 						Unit:     "bytes",
@@ -199,16 +153,16 @@ func GetPodsMetrics(metricsClient metricsclientset.Interface) http.HandlerFunc {
 				}
 			}
 
-			response.Items = append(response.Items, PodMetrics{
+			response.Items = append(response.Items, models.PodMetrics{
 				PodName:    m.Name,
 				Namespace:  m.Namespace,
 				Containers: containers,
-				CPU: NodeResourceMetric{
+				CPU: models.NodeResourceMetric{
 					Value:    totalCPU.String(),
 					Quantity: totalCPU.MilliValue(),
 					Unit:     "m",
 				},
-				Memory: NodeResourceMetric{
+				Memory: models.NodeResourceMetric{
 					Value:    totalMemory.String(),
 					Quantity: totalMemory.Value(),
 					Unit:     "bytes",
@@ -236,9 +190,9 @@ func GetPodMetricsByNamespace(metricsClient metricsclientset.Interface) http.Han
 			return
 		}
 
-		response := PodMetricsListResponse{Items: make([]PodMetrics, 0, len(metrics.Items))}
+		response := models.PodMetricsListResponse{Items: make([]models.PodMetrics, 0, len(metrics.Items))}
 		for _, m := range metrics.Items {
-			containers := make([]ContainerMetrics, len(m.Containers))
+			containers := make([]models.ContainerMetrics, len(m.Containers))
 			totalCPU := resource.NewQuantity(0, resource.DecimalSI)
 			totalMemory := resource.NewQuantity(0, resource.BinarySI)
 
@@ -248,14 +202,14 @@ func GetPodMetricsByNamespace(metricsClient metricsclientset.Interface) http.Han
 				totalCPU.Add(cpu)
 				totalMemory.Add(memory)
 
-				containers[i] = ContainerMetrics{
+				containers[i] = models.ContainerMetrics{
 					Name: c.Name,
-					CPU: NodeResourceMetric{
+					CPU: models.NodeResourceMetric{
 						Value:    cpu.String(),
 						Quantity: cpu.MilliValue(),
 						Unit:     "m",
 					},
-					Memory: NodeResourceMetric{
+					Memory: models.NodeResourceMetric{
 						Value:    memory.String(),
 						Quantity: memory.Value(),
 						Unit:     "bytes",
@@ -263,16 +217,16 @@ func GetPodMetricsByNamespace(metricsClient metricsclientset.Interface) http.Han
 				}
 			}
 
-			response.Items = append(response.Items, PodMetrics{
+			response.Items = append(response.Items, models.PodMetrics{
 				PodName:    m.Name,
 				Namespace:  m.Namespace,
 				Containers: containers,
-				CPU: NodeResourceMetric{
+				CPU: models.NodeResourceMetric{
 					Value:    totalCPU.String(),
 					Quantity: totalCPU.MilliValue(),
 					Unit:     "m",
 				},
-				Memory: NodeResourceMetric{
+				Memory: models.NodeResourceMetric{
 					Value:    totalMemory.String(),
 					Quantity: totalMemory.Value(),
 					Unit:     "bytes",

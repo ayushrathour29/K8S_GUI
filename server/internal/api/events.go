@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"k8_gui/internal/models"
 	"log"
 	"net/http"
 	"time"
@@ -10,24 +11,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
-
-// Event represents a simplified event view
-type Event struct {
-	Name           string `json:"name"`
-	Namespace      string `json:"namespace"`
-	Reason         string `json:"reason"`
-	Message        string `json:"message"`
-	Type           string `json:"type"`
-	InvolvedObject string `json:"involvedObject"`
-	FirstTimestamp string `json:"firstTimestamp"`
-	LastTimestamp  string `json:"lastTimestamp"`
-	Count          int32  `json:"count"`
-}
-
-// EventListResponse represents event list response
-type EventListResponse struct {
-	Items []Event `json:"items"`
-}
 
 // ListEvents returns all events
 func ListEvents(clientset *kubernetes.Clientset) http.HandlerFunc {
@@ -39,9 +22,9 @@ func ListEvents(clientset *kubernetes.Clientset) http.HandlerFunc {
 			return
 		}
 
-		response := EventListResponse{Items: make([]Event, 0, len(events.Items))}
+		response := models.EventListResponse{Items: make([]models.Event, 0, len(events.Items))}
 		for _, e := range events.Items {
-			response.Items = append(response.Items, Event{
+			response.Items = append(response.Items, models.Event{
 				Name:           e.Name,
 				Namespace:      e.Namespace,
 				Reason:         e.Reason,
@@ -72,9 +55,9 @@ func ListEventsByNamespace(clientset *kubernetes.Clientset) http.HandlerFunc {
 			return
 		}
 
-		response := EventListResponse{Items: make([]Event, 0, len(events.Items))}
+		response := models.EventListResponse{Items: make([]models.Event, 0, len(events.Items))}
 		for _, e := range events.Items {
-			response.Items = append(response.Items, Event{
+			response.Items = append(response.Items, models.Event{
 				Name:           e.Name,
 				Namespace:      e.Namespace,
 				Reason:         e.Reason,

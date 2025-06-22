@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"k8_gui/internal/models"
 	"log"
 	"net/http"
 	"time"
@@ -10,23 +11,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
-
-// Node represents a simplified node view
-type Node struct {
-	Name        string            `json:"name"`
-	Status      string            `json:"status"`
-	Version     string            `json:"version"`
-	OSImage     string            `json:"osImage"`
-	Capacity    map[string]string `json:"capacity"`
-	Allocatable map[string]string `json:"allocatable"`
-	CreatedAt   string            `json:"createdAt"`
-	Labels      map[string]string `json:"labels,omitempty"`
-}
-
-// NodeListResponse represents node list response
-type NodeListResponse struct {
-	Items []Node `json:"items"`
-}
 
 // ListNodes returns all nodes
 func ListNodes(clientset *kubernetes.Clientset) http.HandlerFunc {
@@ -38,7 +22,7 @@ func ListNodes(clientset *kubernetes.Clientset) http.HandlerFunc {
 			return
 		}
 
-		response := NodeListResponse{Items: make([]Node, 0, len(nodes.Items))}
+		response := models.NodeListResponse{Items: make([]models.Node, 0, len(nodes.Items))}
 		for _, n := range nodes.Items {
 			capacity := make(map[string]string)
 			allocatable := make(map[string]string)
@@ -50,7 +34,7 @@ func ListNodes(clientset *kubernetes.Clientset) http.HandlerFunc {
 				allocatable[string(resourceName)] = quantity.String()
 			}
 
-			response.Items = append(response.Items, Node{
+			response.Items = append(response.Items, models.Node{
 				Name:        n.Name,
 				Status:      string(n.Status.Phase),
 				Version:     n.Status.NodeInfo.KubeletVersion,
@@ -90,7 +74,7 @@ func GetNode(clientset *kubernetes.Clientset) http.HandlerFunc {
 			allocatable[string(resourceName)] = quantity.String()
 		}
 
-		response := Node{
+		response := models.Node{
 			Name:        node.Name,
 			Status:      string(node.Status.Phase),
 			Version:     node.Status.NodeInfo.KubeletVersion,

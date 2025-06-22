@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"k8_gui/internal/models"
 	"log"
 	"net/http"
 	"time"
@@ -12,24 +13,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
-
-// Pod represents a simplified pod view
-type Pod struct {
-	Name         string            `json:"name"`
-	Namespace    string            `json:"namespace"`
-	Status       string            `json:"status"`
-	RestartCount int32             `json:"restartCount"`
-	CreatedAt    string            `json:"createdAt"`
-	NodeName     string            `json:"nodeName"`
-	PodIP        string            `json:"podIP"`
-	Containers   []string          `json:"containers"`
-	Labels       map[string]string `json:"labels,omitempty"`
-}
-
-// PodListResponse represents pod list response
-type PodListResponse struct {
-	Items []Pod `json:"items"`
-}
 
 // ListPods returns all pods
 func ListPods(clientset *kubernetes.Clientset) http.HandlerFunc {
@@ -41,7 +24,7 @@ func ListPods(clientset *kubernetes.Clientset) http.HandlerFunc {
 			return
 		}
 
-		response := PodListResponse{Items: make([]Pod, 0, len(pods.Items))}
+		response := models.PodListResponse{Items: make([]models.Pod, 0, len(pods.Items))}
 		for _, p := range pods.Items {
 			restartCount := int32(0)
 			for _, cs := range p.Status.ContainerStatuses {
@@ -53,7 +36,7 @@ func ListPods(clientset *kubernetes.Clientset) http.HandlerFunc {
 				containers[i] = c.Name
 			}
 
-			response.Items = append(response.Items, Pod{
+			response.Items = append(response.Items, models.Pod{
 				Name:         p.Name,
 				Namespace:    p.Namespace,
 				Status:       string(p.Status.Phase),
@@ -95,7 +78,7 @@ func GetPod(clientset *kubernetes.Clientset) http.HandlerFunc {
 			containers[i] = c.Name
 		}
 
-		response := Pod{
+		response := models.Pod{
 			Name:         pod.Name,
 			Namespace:    pod.Namespace,
 			Status:       string(pod.Status.Phase),

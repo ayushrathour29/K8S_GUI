@@ -2,21 +2,13 @@ package api
 
 import (
 	"encoding/json"
+	"k8_gui/internal/models"
 	"log"
 	"net/http"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
-
-// ClusterInfo represents cluster information
-type ClusterInfo struct {
-	Name    string `json:"name"`
-	Version string `json:"version"`
-	Nodes   int    `json:"nodes"`
-	Healthy bool   `json:"healthy"`
-	Status  string `json:"status"`
-}
 
 // GetClusters returns cluster info
 func GetClusters(clientset *kubernetes.Clientset) http.HandlerFunc {
@@ -35,7 +27,7 @@ func GetClusters(clientset *kubernetes.Clientset) http.HandlerFunc {
 			return
 		}
 
-		clusterInfo := ClusterInfo{
+		clusterInfo := models.ClusterInfo{
 			Name:    "default-cluster",
 			Version: version.GitVersion,
 			Nodes:   len(nodes.Items),

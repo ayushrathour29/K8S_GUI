@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"k8_gui/internal/models"
 	"log"
 	"net/http"
 	"time"
@@ -11,19 +12,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
-
-// Namespace represents a simplified namespace view
-type Namespace struct {
-	Name      string            `json:"name"`
-	Status    string            `json:"status"`
-	CreatedAt string            `json:"createdAt"`
-	Labels    map[string]string `json:"labels,omitempty"`
-}
-
-// NamespaceListResponse represents namespace list response
-type NamespaceListResponse struct {
-	Items []Namespace `json:"items"`
-}
 
 // ListNamespaces returns all namespaces
 func ListNamespaces(clientset *kubernetes.Clientset) http.HandlerFunc {
@@ -35,9 +23,9 @@ func ListNamespaces(clientset *kubernetes.Clientset) http.HandlerFunc {
 			return
 		}
 
-		response := NamespaceListResponse{Items: make([]Namespace, 0, len(namespaces.Items))}
+		response := models.NamespaceListResponse{Items: make([]models.Namespace, 0, len(namespaces.Items))}
 		for _, ns := range namespaces.Items {
-			response.Items = append(response.Items, Namespace{
+			response.Items = append(response.Items, models.Namespace{
 				Name:      ns.Name,
 				Status:    string(ns.Status.Phase),
 				CreatedAt: ns.CreationTimestamp.Time.Format(time.RFC3339),
@@ -63,7 +51,7 @@ func GetNamespace(clientset *kubernetes.Clientset) http.HandlerFunc {
 			return
 		}
 
-		response := Namespace{
+		response := models.Namespace{
 			Name:      namespace.Name,
 			Status:    string(namespace.Status.Phase),
 			CreatedAt: namespace.CreationTimestamp.Time.Format(time.RFC3339),
@@ -78,12 +66,7 @@ func GetNamespace(clientset *kubernetes.Clientset) http.HandlerFunc {
 // CreateNamespace creates a new namespace
 func CreateNamespace(clientset *kubernetes.Clientset) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		type Request struct {
-			Name   string            `json:"name"`
-			Labels map[string]string `json:"labels,omitempty"`
-		}
-
-		var req Request
+		var req models.CreateNamespaceRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			http.Error(w, "Invalid request body", http.StatusBadRequest)
 			return

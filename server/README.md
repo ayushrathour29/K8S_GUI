@@ -22,21 +22,31 @@ server/
 │       └── main.go              # Application entry point
 ├── internal/
 │   ├── api/
-│   │   ├── handlers.go          # Shared types and auth placeholders
-│   │   ├── pods.go              # Pod-related handlers
+│   │   ├── cluster.go           # Cluster-related handlers
 │   │   ├── deployments.go       # Deployment-related handlers
-│   │   ├── services.go          # Service-related handlers
-│   │   ├── namespaces.go        # Namespace-related handlers
-│   │   ├── nodes.go             # Node-related handlers
 │   │   ├── events.go            # Event-related handlers
 │   │   ├── metrics.go           # Metrics-related handlers
-│   │   └── cluster.go           # Cluster-related handlers
+│   │   ├── namespaces.go        # Namespace-related handlers
+│   │   ├── nodes.go             # Node-related handlers
+│   │   ├── pods.go              # Pod-related handlers
+│   │   └── services.go          # Service-related handlers
 │   ├── auth/
 │   │   └── auth.go              # Authentication logic
 │   ├── k8s/
 │   │   └── client.go            # Kubernetes client setup
-│   └── server/
-│       └── router.go            # HTTP router configuration
+│   ├── models/
+│   │   ├── cluster.go           # Cluster data models
+│   │   ├── deployment.go        # Deployment data models
+│   │   ├── event.go             # Event data models
+│   │   ├── metrics.go           # Metrics data models
+│   │   ├── namespace.go         # Namespace data models
+│   │   ├── node.go              # Node data models
+│   │   ├── pod.go               # Pod data models
+│   │   └── service.go           # Service data models
+│   ├── server/
+│   │   └── router.go            # HTTP router configuration
+│   └── utils/
+│       └── utils.go             # Utility functions
 ├── go.mod                       # Go module file
 ├── go.sum                       # Go module checksums
 ├── Makefile                     # Build and development tasks
@@ -54,18 +64,21 @@ server/
 ## Installation
 
 1. Clone the repository:
+
 ```bash
 git clone <repository-url>
 cd k8s_GUI/server
 ```
 
 2. Install dependencies:
+
 ```bash
 go mod download
 go mod tidy
 ```
 
 3. Set up environment variables:
+
 ```bash
 cp .env.example .env
 # Edit .env with your configuration
@@ -125,21 +138,25 @@ go fmt ./...
 ## API Endpoints
 
 ### Authentication
+
 - `POST /api/login` - User authentication
 - `GET /api/verify` - Token verification
 
 ### Cluster
+
 - `GET /api/clusters` - Get cluster information
 - `GET /api/cluster/health` - Get cluster health status
 - `GET /api/cluster/version` - Get cluster version
 
 ### Pods
+
 - `GET /api/pods` - List all pods
 - `GET /api/pods/{namespace}/{name}` - Get specific pod
 - `DELETE /api/pods/{namespace}/{name}` - Delete pod
 - `GET /api/pods/{namespace}/{name}/logs` - Get pod logs
 
 ### Deployments
+
 - `GET /api/deployments` - List all deployments
 - `GET /api/deployments/{namespace}/{name}` - Get specific deployment
 - `POST /api/deployments` - Create deployment
@@ -147,26 +164,31 @@ go fmt ./...
 - `DELETE /api/deployments/{namespace}/{name}` - Delete deployment
 
 ### Services
+
 - `GET /api/services` - List all services
 - `GET /api/services/{namespace}/{name}` - Get specific service
 - `POST /api/services` - Create service
 - `DELETE /api/services/{namespace}/{name}` - Delete service
 
 ### Namespaces
+
 - `GET /api/namespaces` - List all namespaces
 - `GET /api/namespaces/{name}` - Get specific namespace
 - `POST /api/namespaces` - Create namespace
 - `DELETE /api/namespaces/{name}` - Delete namespace
 
 ### Nodes
+
 - `GET /api/nodes` - List all nodes
 - `GET /api/nodes/{name}` - Get specific node
 
 ### Events
+
 - `GET /api/events` - List all events
 - `GET /api/events/{namespace}` - List events by namespace
 
 ### Metrics
+
 - `GET /api/metrics/nodes` - Get all node metrics
 - `GET /api/metrics/nodes/{name}` - Get specific node metrics
 - `GET /api/metrics/pods` - Get all pod metrics
@@ -208,4 +230,4 @@ make docker-run
 
 ## License
 
-This project is licensed under the MIT License. 
+This project is licensed under the MIT License.
