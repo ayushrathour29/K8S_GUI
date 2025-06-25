@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"k8_gui/internal/models"
+	"k8_gui/internal/utils"
 	"log"
 	"net/http"
 	"time"
@@ -17,8 +18,8 @@ func ListEvents(clientset *kubernetes.Clientset) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		events, err := clientset.CoreV1().Events("").List(r.Context(), metav1.ListOptions{})
 		if err != nil {
-			log.Printf("Failed to list events: %v", err)
-			http.Error(w, "Failed to list events", http.StatusInternalServerError)
+			log.Printf(utils.LogFailedListEvents, err)
+			http.Error(w, utils.MsgFailedListEvents, http.StatusInternalServerError)
 			return
 		}
 
@@ -47,7 +48,7 @@ func ListEvents(clientset *kubernetes.Clientset) http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(response); err != nil {
-			log.Printf("Failed to encode events list: %v", err)
+			log.Printf(utils.LogFailedEncodeEventsList, err)
 		}
 	}
 }
@@ -60,8 +61,8 @@ func ListEventsByNamespace(clientset *kubernetes.Clientset) http.HandlerFunc {
 
 		events, err := clientset.CoreV1().Events(namespace).List(r.Context(), metav1.ListOptions{})
 		if err != nil {
-			log.Printf("Failed to list events for namespace %s: %v", namespace, err)
-			http.Error(w, "Failed to list events", http.StatusInternalServerError)
+			log.Printf(utils.LogFailedListEventsNamespace, namespace, err)
+			http.Error(w, utils.MsgFailedListEvents, http.StatusInternalServerError)
 			return
 		}
 
@@ -90,7 +91,7 @@ func ListEventsByNamespace(clientset *kubernetes.Clientset) http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(response); err != nil {
-			log.Printf("Failed to encode events list for namespace: %v", err)
+			log.Printf(utils.LogFailedEncodeEventsListNamespace, err)
 		}
 	}
 }

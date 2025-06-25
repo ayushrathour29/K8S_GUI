@@ -19,8 +19,8 @@ func ListServices(clientset *kubernetes.Clientset) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		services, err := clientset.CoreV1().Services("").List(r.Context(), metav1.ListOptions{})
 		if err != nil {
-			log.Printf("Failed to list services: %v", err)
-			http.Error(w, "Failed to list services", http.StatusInternalServerError)
+			log.Printf(utils.LogFailedListServices, err)
+			http.Error(w, utils.MsgFailedListServices, http.StatusInternalServerError)
 			return
 		}
 
@@ -46,7 +46,7 @@ func ListServices(clientset *kubernetes.Clientset) http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(response); err != nil {
-			log.Printf("Failed to encode services list: %v", err)
+			log.Printf(utils.LogFailedEncodeServicesList, err)
 		}
 	}
 }
@@ -60,8 +60,8 @@ func GetService(clientset *kubernetes.Clientset) http.HandlerFunc {
 
 		service, err := clientset.CoreV1().Services(namespace).Get(r.Context(), name, metav1.GetOptions{})
 		if err != nil {
-			log.Printf("Failed to get service: %v", err)
-			http.Error(w, "Service not found", http.StatusNotFound)
+			log.Printf(utils.LogFailedGetService, err)
+			http.Error(w, utils.MsgServiceNotFound, http.StatusNotFound)
 			return
 		}
 
@@ -84,7 +84,7 @@ func GetService(clientset *kubernetes.Clientset) http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(response); err != nil {
-			log.Printf("Failed to encode service: %v", err)
+			log.Printf(utils.LogFailedEncodeService, err)
 		}
 	}
 }
@@ -94,7 +94,7 @@ func CreateService(clientset *kubernetes.Clientset) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req models.CreateServiceRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			http.Error(w, utils.MsgInvalidRequestBody, http.StatusBadRequest)
 			return
 		}
 
@@ -120,15 +120,15 @@ func CreateService(clientset *kubernetes.Clientset) http.HandlerFunc {
 
 		created, err := clientset.CoreV1().Services(req.Namespace).Create(r.Context(), service, metav1.CreateOptions{})
 		if err != nil {
-			log.Printf("Failed to create service: %v", err)
-			http.Error(w, "Failed to create service", http.StatusInternalServerError)
+			log.Printf(utils.LogFailedCreateService, err)
+			http.Error(w, utils.MsgFailedCreateService, http.StatusInternalServerError)
 			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		if err := json.NewEncoder(w).Encode(created); err != nil {
-			log.Printf("Failed to encode created service: %v", err)
+			log.Printf(utils.LogFailedEncodeCreatedService, err)
 		}
 	}
 }
@@ -142,8 +142,8 @@ func DeleteService(clientset *kubernetes.Clientset) http.HandlerFunc {
 
 		err := clientset.CoreV1().Services(namespace).Delete(r.Context(), name, metav1.DeleteOptions{})
 		if err != nil {
-			log.Printf("Failed to delete service: %v", err)
-			http.Error(w, "Failed to delete service", http.StatusInternalServerError)
+			log.Printf(utils.LogFailedDeleteService, err)
+			http.Error(w, utils.MsgFailedDeleteService, http.StatusInternalServerError)
 			return
 		}
 

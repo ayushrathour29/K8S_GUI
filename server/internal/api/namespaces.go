@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"k8_gui/internal/models"
+	"k8_gui/internal/utils"
 	"log"
 	"net/http"
 	"time"
@@ -18,8 +19,8 @@ func ListNamespaces(clientset *kubernetes.Clientset) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		namespaces, err := clientset.CoreV1().Namespaces().List(r.Context(), metav1.ListOptions{})
 		if err != nil {
-			log.Printf("Failed to list namespaces: %v", err)
-			http.Error(w, "Failed to list namespaces", http.StatusInternalServerError)
+			log.Printf(utils.LogFailedListNamespaces, err)
+			http.Error(w, utils.MsgFailedListNamespaces, http.StatusInternalServerError)
 			return
 		}
 
@@ -35,7 +36,7 @@ func ListNamespaces(clientset *kubernetes.Clientset) http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(response); err != nil {
-			log.Printf("Failed to encode namespaces list: %v", err)
+			log.Printf(utils.LogFailedEncodeNamespacesList, err)
 		}
 	}
 }
@@ -48,8 +49,8 @@ func GetNamespace(clientset *kubernetes.Clientset) http.HandlerFunc {
 
 		namespace, err := clientset.CoreV1().Namespaces().Get(r.Context(), name, metav1.GetOptions{})
 		if err != nil {
-			log.Printf("Failed to get namespace: %v", err)
-			http.Error(w, "Namespace not found", http.StatusNotFound)
+			log.Printf(utils.LogFailedGetNamespace, err)
+			http.Error(w, utils.MsgNamespaceNotFound, http.StatusNotFound)
 			return
 		}
 
@@ -62,7 +63,7 @@ func GetNamespace(clientset *kubernetes.Clientset) http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(response); err != nil {
-			log.Printf("Failed to encode namespace: %v", err)
+			log.Printf(utils.LogFailedEncodeNamespace, err)
 		}
 	}
 }
@@ -72,7 +73,7 @@ func CreateNamespace(clientset *kubernetes.Clientset) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req models.CreateNamespaceRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			http.Error(w, utils.MsgInvalidRequestBody, http.StatusBadRequest)
 			return
 		}
 
@@ -85,15 +86,15 @@ func CreateNamespace(clientset *kubernetes.Clientset) http.HandlerFunc {
 
 		created, err := clientset.CoreV1().Namespaces().Create(r.Context(), namespace, metav1.CreateOptions{})
 		if err != nil {
-			log.Printf("Failed to create namespace: %v", err)
-			http.Error(w, "Failed to create namespace", http.StatusInternalServerError)
+			log.Printf(utils.LogFailedCreateNamespace, err)
+			http.Error(w, utils.MsgFailedCreateNamespace, http.StatusInternalServerError)
 			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		if err := json.NewEncoder(w).Encode(created); err != nil {
-			log.Printf("Failed to encode created namespace: %v", err)
+			log.Printf(utils.LogFailedEncodeCreatedNamespace, err)
 		}
 	}
 }
@@ -106,8 +107,8 @@ func DeleteNamespace(clientset *kubernetes.Clientset) http.HandlerFunc {
 
 		err := clientset.CoreV1().Namespaces().Delete(r.Context(), name, metav1.DeleteOptions{})
 		if err != nil {
-			log.Printf("Failed to delete namespace: %v", err)
-			http.Error(w, "Failed to delete namespace", http.StatusInternalServerError)
+			log.Printf(utils.LogFailedDeleteNamespace, err)
+			http.Error(w, utils.MsgFailedDeleteNamespace, http.StatusInternalServerError)
 			return
 		}
 

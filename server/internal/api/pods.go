@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"k8_gui/internal/models"
+	"k8_gui/internal/utils"
 	"log"
 	"net/http"
 	"strconv"
@@ -20,8 +21,8 @@ func ListPods(clientset *kubernetes.Clientset) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		pods, err := clientset.CoreV1().Pods("").List(r.Context(), metav1.ListOptions{})
 		if err != nil {
-			log.Printf("Failed to list pods: %v", err)
-			http.Error(w, "Failed to list pods", http.StatusInternalServerError)
+			log.Printf(utils.LogFailedListPods, err)
+			http.Error(w, utils.MsgFailedListPods, http.StatusInternalServerError)
 			return
 		}
 
@@ -52,7 +53,7 @@ func ListPods(clientset *kubernetes.Clientset) http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(response); err != nil {
-			log.Printf("Failed to encode pods list: %v", err)
+			log.Printf(utils.LogFailedEncodePodsList, err)
 		}
 	}
 }
@@ -66,8 +67,8 @@ func GetPod(clientset *kubernetes.Clientset) http.HandlerFunc {
 
 		pod, err := clientset.CoreV1().Pods(namespace).Get(r.Context(), name, metav1.GetOptions{})
 		if err != nil {
-			log.Printf("Failed to get pod: %v", err)
-			http.Error(w, "Pod not found", http.StatusNotFound)
+			log.Printf(utils.LogFailedGetPod, err)
+			http.Error(w, utils.MsgPodNotFound, http.StatusNotFound)
 			return
 		}
 
@@ -95,7 +96,7 @@ func GetPod(clientset *kubernetes.Clientset) http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(response); err != nil {
-			log.Printf("Failed to encode pod: %v", err)
+			log.Printf(utils.LogFailedEncodePod, err)
 		}
 	}
 }
@@ -109,8 +110,8 @@ func DeletePod(clientset *kubernetes.Clientset) http.HandlerFunc {
 
 		err := clientset.CoreV1().Pods(namespace).Delete(r.Context(), name, metav1.DeleteOptions{})
 		if err != nil {
-			log.Printf("Failed to delete pod: %v", err)
-			http.Error(w, "Failed to delete pod", http.StatusInternalServerError)
+			log.Printf(utils.LogFailedDeletePod, err)
+			http.Error(w, utils.MsgFailedDeletePod, http.StatusInternalServerError)
 			return
 		}
 
@@ -130,7 +131,7 @@ func GetPodLogs(clientset *kubernetes.Clientset) http.HandlerFunc {
 		if tail := r.URL.Query().Get("tail"); tail != "" {
 			parsed, err := parseTailLines(tail)
 			if err != nil {
-				http.Error(w, "Invalid 'tail' parameter", http.StatusBadRequest)
+				http.Error(w, utils.MsgInvalidTailParameter, http.StatusBadRequest)
 				return
 			}
 			tailLines = parsed
@@ -140,14 +141,14 @@ func GetPodLogs(clientset *kubernetes.Clientset) http.HandlerFunc {
 			TailLines: &tailLines,
 		}).Do(r.Context()).Raw()
 		if err != nil {
-			log.Printf("Failed to get pod logs: %v", err)
-			http.Error(w, "Failed to get pod logs", http.StatusInternalServerError)
+			log.Printf(utils.LogFailedGetPodLogs, err)
+			http.Error(w, utils.MsgFailedGetPodLogs, http.StatusInternalServerError)
 			return
 		}
 
 		w.Header().Set("Content-Type", "text/plain")
 		if _, err := w.Write(logs); err != nil {
-			log.Printf("Failed to write pod logs to response: %v", err)
+			log.Printf(utils.LogFailedWritePodLogs, err)
 		}
 	}
 }

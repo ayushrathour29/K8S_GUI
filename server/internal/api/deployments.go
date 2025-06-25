@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"k8_gui/internal/models"
+	"k8_gui/internal/utils"
 	"log"
 	"net/http"
 	"time"
@@ -19,8 +20,8 @@ func ListDeployments(clientset *kubernetes.Clientset) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		deployments, err := clientset.AppsV1().Deployments("").List(r.Context(), metav1.ListOptions{})
 		if err != nil {
-			log.Printf("Failed to list deployments: %v", err)
-			http.Error(w, "Failed to list deployments", http.StatusInternalServerError)
+			log.Printf(utils.LogFailedListDeployments, err)
+			http.Error(w, utils.MsgFailedListDeployments, http.StatusInternalServerError)
 			return
 		}
 
@@ -39,7 +40,7 @@ func ListDeployments(clientset *kubernetes.Clientset) http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(response); err != nil {
-			log.Printf("Failed to encode deployments list: %v", err)
+			log.Printf(utils.LogFailedEncodeDeploymentsList, err)
 		}
 	}
 }
@@ -53,8 +54,8 @@ func GetDeployment(clientset *kubernetes.Clientset) http.HandlerFunc {
 
 		deployment, err := clientset.AppsV1().Deployments(namespace).Get(r.Context(), name, metav1.GetOptions{})
 		if err != nil {
-			log.Printf("Failed to get deployment: %v", err)
-			http.Error(w, "Deployment not found", http.StatusNotFound)
+			log.Printf(utils.LogFailedGetDeployment, err)
+			http.Error(w, utils.MsgDeploymentNotFound, http.StatusNotFound)
 			return
 		}
 
@@ -70,7 +71,7 @@ func GetDeployment(clientset *kubernetes.Clientset) http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(response); err != nil {
-			log.Printf("Failed to encode deployment: %v", err)
+			log.Printf(utils.LogFailedEncodeDeployment, err)
 		}
 	}
 }
@@ -80,7 +81,7 @@ func CreateDeployment(clientset *kubernetes.Clientset) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req models.CreateDeploymentRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			http.Error(w, utils.MsgInvalidRequestBody, http.StatusBadRequest)
 			return
 		}
 
@@ -121,15 +122,15 @@ func CreateDeployment(clientset *kubernetes.Clientset) http.HandlerFunc {
 
 		created, err := clientset.AppsV1().Deployments(req.Namespace).Create(r.Context(), deployment, metav1.CreateOptions{})
 		if err != nil {
-			log.Printf("Failed to create deployment: %v", err)
-			http.Error(w, "Failed to create deployment", http.StatusInternalServerError)
+			log.Printf(utils.LogFailedCreateDeployment, err)
+			http.Error(w, utils.MsgFailedCreateDeployment, http.StatusInternalServerError)
 			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		if err := json.NewEncoder(w).Encode(created); err != nil {
-			log.Printf("Failed to encode created deployment: %v", err)
+			log.Printf(utils.LogFailedEncodeCreatedDeployment, err)
 		}
 	}
 }
@@ -143,14 +144,14 @@ func UpdateDeployment(clientset *kubernetes.Clientset) http.HandlerFunc {
 
 		var req models.UpdateDeploymentRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			http.Error(w, utils.MsgInvalidRequestBody, http.StatusBadRequest)
 			return
 		}
 
 		deployment, err := clientset.AppsV1().Deployments(namespace).Get(r.Context(), name, metav1.GetOptions{})
 		if err != nil {
-			log.Printf("Failed to get deployment: %v", err)
-			http.Error(w, "Deployment not found", http.StatusNotFound)
+			log.Printf(utils.LogFailedGetDeployment, err)
+			http.Error(w, utils.MsgDeploymentNotFound, http.StatusNotFound)
 			return
 		}
 
@@ -164,14 +165,14 @@ func UpdateDeployment(clientset *kubernetes.Clientset) http.HandlerFunc {
 
 		updated, err := clientset.AppsV1().Deployments(namespace).Update(r.Context(), deployment, metav1.UpdateOptions{})
 		if err != nil {
-			log.Printf("Failed to update deployment: %v", err)
-			http.Error(w, "Failed to update deployment", http.StatusInternalServerError)
+			log.Printf(utils.LogFailedUpdateDeployment, err)
+			http.Error(w, utils.MsgFailedUpdateDeployment, http.StatusInternalServerError)
 			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(updated); err != nil {
-			log.Printf("Failed to encode updated deployment: %v", err)
+			log.Printf(utils.LogFailedEncodeUpdatedDeployment, err)
 		}
 	}
 }
@@ -185,8 +186,8 @@ func DeleteDeployment(clientset *kubernetes.Clientset) http.HandlerFunc {
 
 		err := clientset.AppsV1().Deployments(namespace).Delete(r.Context(), name, metav1.DeleteOptions{})
 		if err != nil {
-			log.Printf("Failed to delete deployment: %v", err)
-			http.Error(w, "Failed to delete deployment", http.StatusInternalServerError)
+			log.Printf(utils.LogFailedDeleteDeployment, err)
+			http.Error(w, utils.MsgFailedDeleteDeployment, http.StatusInternalServerError)
 			return
 		}
 

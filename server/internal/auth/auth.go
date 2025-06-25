@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"k8_gui/internal/utils"
+
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -32,12 +34,12 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&creds); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		http.Error(w, utils.MsgInvalidRequestBody, http.StatusBadRequest)
 		return
 	}
 
 	if creds.Username != "admin" || creds.Password != "password" {
-		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+		http.Error(w, utils.MsgInvalidCredentials, http.StatusUnauthorized)
 		return
 	}
 
@@ -52,7 +54,7 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err := token.SignedString(getJWTSecret())
 	if err != nil {
-		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
+		http.Error(w, utils.MsgFailedGenerateToken, http.StatusInternalServerError)
 		return
 	}
 
@@ -65,7 +67,7 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 func VerifyToken(w http.ResponseWriter, r *http.Request) {
 	authHeader := r.Header.Get("Authorization")
 	if authHeader == "" {
-		http.Error(w, "Authorization header required", http.StatusUnauthorized)
+		http.Error(w, utils.MsgAuthorizationHeaderRequired, http.StatusUnauthorized)
 		return
 	}
 
@@ -77,7 +79,7 @@ func VerifyToken(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if tokenString == "" {
-		http.Error(w, "Token required", http.StatusUnauthorized)
+		http.Error(w, utils.MsgTokenRequired, http.StatusUnauthorized)
 		return
 	}
 
@@ -88,13 +90,13 @@ func VerifyToken(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		fmt.Printf("Token parsing error: %v\n", err)
-		http.Error(w, "Invalid token", http.StatusUnauthorized)
+		http.Error(w, utils.MsgInvalidToken, http.StatusUnauthorized)
 		return
 	}
 
 	if !token.Valid {
 		fmt.Printf("Token is invalid\n")
-		http.Error(w, "Invalid token", http.StatusUnauthorized)
+		http.Error(w, utils.MsgInvalidToken, http.StatusUnauthorized)
 		return
 	}
 
@@ -109,7 +111,7 @@ func ValidateJWTMiddleware(next http.Handler) http.Handler {
 		// Get token from "Authorization: Bearer <token>"
 		authHeader := r.Header.Get("Authorization")
 		if authHeader == "" {
-			http.Error(w, "Missing Authorization header", http.StatusUnauthorized)
+			http.Error(w, utils.MsgMissingAuthorizationHeader, http.StatusUnauthorized)
 			return
 		}
 
@@ -121,7 +123,7 @@ func ValidateJWTMiddleware(next http.Handler) http.Handler {
 		})
 
 		if err != nil || !token.Valid {
-			http.Error(w, "Invalid or expired token", http.StatusUnauthorized)
+			http.Error(w, utils.MsgInvalidOrExpiredToken, http.StatusUnauthorized)
 			return
 		}
 

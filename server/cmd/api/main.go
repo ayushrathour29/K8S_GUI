@@ -8,6 +8,7 @@ import (
 
 	"k8_gui/internal/k8s"
 	"k8_gui/internal/server"
+	"k8_gui/internal/utils"
 
 	"github.com/joho/godotenv"
 )
@@ -15,17 +16,17 @@ import (
 func main() {
 	err := godotenv.Load()
 	if err != nil {
-		log.Println("No .env file found")
+		log.Println(utils.LogNoEnvFile)
 	}
 
 	clientset, metricsClient, err := k8s.InitK8sClient()
 	if err != nil {
-		log.Printf("Warning: Error initializing Kubernetes client: %v", err)
-		log.Println("Starting server with limited functionality (auth endpoints will still work)")
+		log.Printf(utils.LogWarnInitK8sClient, err)
+		log.Println(utils.LogLimitedServer)
 		clientset = nil
 		metricsClient = nil
 	} else {
-		log.Println("Kubernetes client initialized successfully")
+		log.Println(utils.LogK8sClientInitSuccess)
 	}
 
 	router := server.NewRouter(clientset, metricsClient)

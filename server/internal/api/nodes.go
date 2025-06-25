@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"k8_gui/internal/models"
+	"k8_gui/internal/utils"
 	"log"
 	"net/http"
 	"time"
@@ -17,8 +18,8 @@ func ListNodes(clientset *kubernetes.Clientset) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		nodes, err := clientset.CoreV1().Nodes().List(r.Context(), metav1.ListOptions{})
 		if err != nil {
-			log.Printf("Failed to list nodes: %v", err)
-			http.Error(w, "Failed to list nodes", http.StatusInternalServerError)
+			log.Printf(utils.LogFailedListNodes, err)
+			http.Error(w, utils.MsgFailedListNodes, http.StatusInternalServerError)
 			return
 		}
 
@@ -48,7 +49,7 @@ func ListNodes(clientset *kubernetes.Clientset) http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(response); err != nil {
-			log.Printf("Failed to encode nodes list: %v", err)
+			log.Printf(utils.LogFailedEncodeNodesList, err)
 		}
 	}
 }
@@ -61,8 +62,8 @@ func GetNode(clientset *kubernetes.Clientset) http.HandlerFunc {
 
 		node, err := clientset.CoreV1().Nodes().Get(r.Context(), name, metav1.GetOptions{})
 		if err != nil {
-			log.Printf("Failed to get node: %v", err)
-			http.Error(w, "Node not found", http.StatusNotFound)
+			log.Printf(utils.LogFailedGetNode, err)
+			http.Error(w, utils.MsgNodeNotFound, http.StatusNotFound)
 			return
 		}
 
@@ -89,7 +90,7 @@ func GetNode(clientset *kubernetes.Clientset) http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(response); err != nil {
-			log.Printf("Failed to encode node: %v", err)
+			log.Printf(utils.LogFailedEncodeNode, err)
 		}
 	}
 }

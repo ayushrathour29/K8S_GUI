@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"k8_gui/internal/models"
+	"k8_gui/internal/utils"
 	"log"
 	"net/http"
 	"time"
@@ -24,15 +25,15 @@ func GetNodeMetrics(clientset *kubernetes.Clientset, metricsClient metricsclient
 		// Get node to check capacity
 		node, err := clientset.CoreV1().Nodes().Get(r.Context(), nodeName, metav1.GetOptions{})
 		if err != nil {
-			log.Printf("Failed to get node %s: %v", nodeName, err)
-			http.Error(w, "Node not found", http.StatusNotFound)
+			log.Printf(utils.LogFailedGetNodeMetrics, nodeName, err)
+			http.Error(w, utils.MsgNodeNotFound, http.StatusNotFound)
 			return
 		}
 
 		// Get node metrics
 		metrics, err := metricsClient.MetricsV1beta1().NodeMetricses().Get(r.Context(), nodeName, metav1.GetOptions{})
 		if err != nil {
-			log.Printf("Failed to get metrics for node %s: %v", nodeName, err)
+			log.Printf(utils.LogFailedGetNodeMetricsAPI, nodeName, err)
 			response := models.NodeMetrics{
 				NodeName:  nodeName,
 				Available: false,
@@ -41,7 +42,7 @@ func GetNodeMetrics(clientset *kubernetes.Clientset, metricsClient metricsclient
 			}
 			w.Header().Set("Content-Type", "application/json")
 			if err := json.NewEncoder(w).Encode(response); err != nil {
-				log.Printf("Failed to encode node metrics error response: %v", err)
+				log.Printf(utils.LogFailedEncodeNodeMetricsError, err)
 			}
 			return
 		}
@@ -77,7 +78,7 @@ func GetNodeMetrics(clientset *kubernetes.Clientset, metricsClient metricsclient
 
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(response); err != nil {
-			log.Printf("Failed to encode node metrics: %v", err)
+			log.Printf(utils.LogFailedEncodeNodeMetrics, err)
 		}
 	}
 }
@@ -87,8 +88,8 @@ func GetNodesMetrics(metricsClient metricsclientset.Interface) http.HandlerFunc 
 	return func(w http.ResponseWriter, r *http.Request) {
 		metrics, err := metricsClient.MetricsV1beta1().NodeMetricses().List(r.Context(), metav1.ListOptions{})
 		if err != nil {
-			log.Printf("Failed to get node metrics: %v", err)
-			http.Error(w, "Failed to get node metrics", http.StatusInternalServerError)
+			log.Printf(utils.LogFailedGetNodeMetricsList, err)
+			http.Error(w, utils.MsgFailedGetNodeMetrics, http.StatusInternalServerError)
 			return
 		}
 
@@ -117,7 +118,7 @@ func GetNodesMetrics(metricsClient metricsclientset.Interface) http.HandlerFunc 
 
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(response); err != nil {
-			log.Printf("Failed to encode node metrics list: %v", err)
+			log.Printf(utils.LogFailedEncodeNodeMetricsList, err)
 		}
 	}
 }
@@ -127,8 +128,8 @@ func GetPodsMetrics(metricsClient metricsclientset.Interface) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		metrics, err := metricsClient.MetricsV1beta1().PodMetricses("").List(r.Context(), metav1.ListOptions{})
 		if err != nil {
-			log.Printf("Failed to get pod metrics: %v", err)
-			http.Error(w, "Failed to get pod metrics", http.StatusInternalServerError)
+			log.Printf(utils.LogFailedGetPodMetrics, err)
+			http.Error(w, utils.MsgFailedGetPodMetrics, http.StatusInternalServerError)
 			return
 		}
 
@@ -180,7 +181,7 @@ func GetPodsMetrics(metricsClient metricsclientset.Interface) http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(response); err != nil {
-			log.Printf("Failed to encode pod metrics list: %v", err)
+			log.Printf(utils.LogFailedEncodePodMetricsList, err)
 		}
 	}
 }
@@ -193,8 +194,8 @@ func GetPodMetricsByNamespace(metricsClient metricsclientset.Interface) http.Han
 
 		metrics, err := metricsClient.MetricsV1beta1().PodMetricses(namespace).List(r.Context(), metav1.ListOptions{})
 		if err != nil {
-			log.Printf("Failed to get pod metrics for namespace %s: %v", namespace, err)
-			http.Error(w, "Failed to get pod metrics", http.StatusInternalServerError)
+			log.Printf(utils.LogFailedGetPodMetricsNamespace, namespace, err)
+			http.Error(w, utils.MsgFailedGetPodMetrics, http.StatusInternalServerError)
 			return
 		}
 
@@ -246,7 +247,7 @@ func GetPodMetricsByNamespace(metricsClient metricsclientset.Interface) http.Han
 
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(response); err != nil {
-			log.Printf("Failed to encode pod metrics list for namespace: %v", err)
+			log.Printf(utils.LogFailedEncodePodMetricsListNamespace, err)
 		}
 	}
 }

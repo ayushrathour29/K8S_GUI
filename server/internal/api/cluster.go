@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"k8_gui/internal/models"
+	"k8_gui/internal/utils"
 	"log"
 	"net/http"
 
@@ -15,15 +16,15 @@ func GetClusters(clientset *kubernetes.Clientset) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		version, err := clientset.ServerVersion()
 		if err != nil {
-			log.Printf("Failed to get server version: %v", err)
-			http.Error(w, "Failed to get cluster info", http.StatusInternalServerError)
+			log.Printf(utils.LogFailedGetServerVersion, err)
+			http.Error(w, utils.MsgFailedGetClusterInfo, http.StatusInternalServerError)
 			return
 		}
 
 		nodes, err := clientset.CoreV1().Nodes().List(r.Context(), v1.ListOptions{})
 		if err != nil {
-			log.Printf("Failed to list nodes: %v", err)
-			http.Error(w, "Failed to get cluster info", http.StatusInternalServerError)
+			log.Printf(utils.LogFailedListNodes, err)
+			http.Error(w, utils.MsgFailedGetClusterInfo, http.StatusInternalServerError)
 			return
 		}
 
@@ -37,7 +38,7 @@ func GetClusters(clientset *kubernetes.Clientset) http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(clusterInfo); err != nil {
-			log.Printf("Failed to encode cluster info: %v", err)
+			log.Printf(utils.LogFailedEncodeClusterInfo, err)
 		}
 	}
 }
@@ -48,8 +49,8 @@ func GetClusterHealth(clientset *kubernetes.Clientset) http.HandlerFunc {
 		// Check nodes health
 		nodes, err := clientset.CoreV1().Nodes().List(r.Context(), v1.ListOptions{})
 		if err != nil {
-			log.Printf("Failed to list nodes: %v", err)
-			http.Error(w, "Failed to get cluster health", http.StatusInternalServerError)
+			log.Printf(utils.LogFailedListNodes, err)
+			http.Error(w, utils.MsgFailedGetClusterHealth, http.StatusInternalServerError)
 			return
 		}
 
@@ -66,8 +67,8 @@ func GetClusterHealth(clientset *kubernetes.Clientset) http.HandlerFunc {
 		// Check pods health
 		pods, err := clientset.CoreV1().Pods("").List(r.Context(), v1.ListOptions{})
 		if err != nil {
-			log.Printf("Failed to list pods: %v", err)
-			http.Error(w, "Failed to get cluster health", http.StatusInternalServerError)
+			log.Printf(utils.LogFailedListPods, err)
+			http.Error(w, utils.MsgFailedGetClusterHealth, http.StatusInternalServerError)
 			return
 		}
 
@@ -97,7 +98,7 @@ func GetClusterHealth(clientset *kubernetes.Clientset) http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(healthStatus); err != nil {
-			log.Printf("Failed to encode cluster health: %v", err)
+			log.Printf(utils.LogFailedEncodeClusterHealth, err)
 		}
 	}
 }
@@ -107,8 +108,8 @@ func GetClusterVersion(clientset *kubernetes.Clientset) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		version, err := clientset.ServerVersion()
 		if err != nil {
-			log.Printf("Failed to get server version: %v", err)
-			http.Error(w, "Failed to get cluster version", http.StatusInternalServerError)
+			log.Printf(utils.LogFailedGetServerVersion, err)
+			http.Error(w, utils.MsgFailedGetClusterVersion, http.StatusInternalServerError)
 			return
 		}
 
@@ -124,7 +125,7 @@ func GetClusterVersion(clientset *kubernetes.Clientset) http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(versionInfo); err != nil {
-			log.Printf("Failed to encode cluster version: %v", err)
+			log.Printf(utils.LogFailedEncodeClusterVersion, err)
 		}
 	}
 }

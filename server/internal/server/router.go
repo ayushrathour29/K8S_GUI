@@ -12,6 +12,7 @@ import (
 
 	"k8_gui/internal/auth"
 	"k8_gui/internal/server/routes"
+	"k8_gui/internal/utils"
 )
 
 // NewRouter creates application router
@@ -99,7 +100,7 @@ func NewRouter(clientset *kubernetes.Clientset, metricsClient *metricsclientset.
 		router.HandleFunc("/api/health", func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(`{"status": "ok", "message": "Server running (Kubernetes not available)"}`))
+			w.Write([]byte(utils.MsgServerRunningLimited))
 		}).Methods("GET")
 	}
 
