@@ -6,11 +6,14 @@ import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 
 const getStatusChip = (status) => {
-  const colorMap = {
-    Ready: 'success',
-    NotReady: 'error',
-  };
-  return <Chip label={status} color={colorMap[status] || 'default'} size="small" />;
+  return (
+    <Chip
+      label={status}
+      color="success"      
+      size="small"
+      variant="filled"     
+    />
+  );
 };
 
 const NodeDetailsModal = ({ open, onClose, nodeName }) => {

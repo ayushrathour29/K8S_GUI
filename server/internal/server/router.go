@@ -3,155 +3,83 @@ package server
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
 	"k8s.io/client-go/kubernetes"
-
-	"k8_gui/internal/api"
-	"k8_gui/internal/auth"
-
 	metricsclientset "k8s.io/metrics/pkg/client/clientset/versioned"
+
+	"k8_gui/internal/auth"
+	"k8_gui/internal/server/routes"
 )
 
 // NewRouter creates application router
 func NewRouter(clientset *kubernetes.Clientset, metricsClient *metricsclientset.Clientset) http.Handler {
 	router := mux.NewRouter()
 
-	//  Public routes
+	// Public routes
 	router.HandleFunc("/api/login", auth.HandleLogin).Methods("POST")
 	router.HandleFunc("/api/validate-token", auth.VerifyToken).Methods("GET")
 
-	// Only add protected routes if Kubernetes client is available
+	protected := router.PathPrefix("/api").Subrouter()
+	protected.Use(auth.ValidateJWTMiddleware)
+
 	if clientset != nil {
-		// Protected subrouter
-		protected := router.PathPrefix("/api").Subrouter()
-		protected.Use(auth.ValidateJWTMiddleware)
-
-		// Cluster endpoints
-		protected.HandleFunc("/clusters", api.GetClusters(clientset)).Methods("GET")
-
-		// Pod endpoints
-		protected.HandleFunc("/pods", api.ListPods(clientset)).Methods("GET")
-		protected.HandleFunc("/pods/{namespace}/{name}", api.GetPod(clientset)).Methods("GET")
-		protected.HandleFunc("/pods/{namespace}/{name}", api.DeletePod(clientset)).Methods("DELETE")
-		protected.HandleFunc("/pods/{namespace}/{name}/logs", api.GetPodLogs(clientset)).Methods("GET")
-
-		// Deployment endpoints
-		protected.HandleFunc("/deployments", api.ListDeployments(clientset)).Methods("GET")
-		protected.HandleFunc("/deployments/{namespace}/{name}", api.GetDeployment(clientset)).Methods("GET")
-		protected.HandleFunc("/deployments/{namespace}/{name}", api.DeleteDeployment(clientset)).Methods("DELETE")
-		protected.HandleFunc("/deployments", api.CreateDeployment(clientset)).Methods("POST")
-		protected.HandleFunc("/deployments/{namespace}/{name}", api.UpdateDeployment(clientset)).Methods("PUT")
-
-		// Service endpoints
-		protected.HandleFunc("/services", api.ListServices(clientset)).Methods("GET")
-		protected.HandleFunc("/services/{namespace}/{name}", api.GetService(clientset)).Methods("GET")
-		protected.HandleFunc("/services", api.CreateService(clientset)).Methods("POST")
-		protected.HandleFunc("/services/{namespace}/{name}", api.DeleteService(clientset)).Methods("DELETE")
-
-		protected.HandleFunc("/namespaces", api.ListNamespaces(clientset)).Methods("GET")
-		protected.HandleFunc("/namespaces/{name}", api.GetNamespace(clientset)).Methods("GET")
-		protected.HandleFunc("/namespaces", api.CreateNamespace(clientset)).Methods("POST")
-		protected.HandleFunc("/namespaces/{name}", api.DeleteNamespace(clientset)).Methods("DELETE")
-
-		protected.HandleFunc("/nodes", api.ListNodes(clientset)).Methods("GET")
-		protected.HandleFunc("/nodes/{name}", api.GetNode(clientset)).Methods("GET")
+		// Register grouped routes
+		routes.RegisterPodRoutes(protected, clientset)
+		routes.RegisterDeploymentRoutes(protected, clientset)
+		routes.RegisterServiceRoutes(protected, clientset)
+		routes.RegisterEventRoutes(protected, clientset)
+		routes.RegisterNodeRoutes(protected, clientset, metricsClient)
+		routes.RegisterNamspaceRoutes(protected, clientset)
 
 		if metricsClient != nil {
-			protected.HandleFunc("/nodes/{name}/metrics", api.GetNodeMetrics(clientset, metricsClient)).Methods("GET")
-			protected.HandleFunc("/metrics/nodes", api.GetNodesMetrics(metricsClient)).Methods("GET")
-			protected.HandleFunc("/metrics/pods", api.GetPodsMetrics(metricsClient)).Methods("GET")
-			protected.HandleFunc("/metrics/pods/{namespace}", api.GetPodMetricsByNamespace(metricsClient)).Methods("GET")
+			routes.RegisterMetricsRoutes(protected, metricsClient)
 		}
-
-		protected.HandleFunc("/events", api.ListEvents(clientset)).Methods("GET")
-		protected.HandleFunc("/events/{namespace}", api.ListEventsByNamespace(clientset)).Methods("GET")
 	} else {
-		// Add mock data endpoints when Kubernetes is not available
-		protected := router.PathPrefix("/api").Subrouter()
-		protected.Use(auth.ValidateJWTMiddleware)
-
-		// Mock pods endpoint
+		// Add mock routes if Kubernetes is unavailable
 		protected.HandleFunc("/pods", func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(map[string]interface{}{
 				"items": []map[string]interface{}{
-					{
-						"name":      "nginx-pod",
-						"namespace": "default",
-						"status":    "Running",
-					},
-					{
-						"name":      "redis-pod",
-						"namespace": "default",
-						"status":    "Running",
-					},
-					{
-						"name":      "mysql-pod",
-						"namespace": "database",
-						"status":    "Running",
-					},
+					{"name": "nginx-pod", "namespace": "default", "status": "Running"},
+					{"name": "redis-pod", "namespace": "default", "status": "Running"},
+					{"name": "mysql-pod", "namespace": "database", "status": "Running"},
 				},
 			})
 		}).Methods("GET")
 
-		// Mock deployments endpoint
 		protected.HandleFunc("/deployments", func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(map[string]interface{}{
 				"items": []map[string]interface{}{
-					{
-						"name":      "nginx-deployment",
-						"namespace": "default",
-						"status":    "Available",
-					},
-					{
-						"name":      "api-deployment",
-						"namespace": "backend",
-						"status":    "Available",
-					},
+					{"name": "nginx-deployment", "namespace": "default", "status": "Available"},
+					{"name": "api-deployment", "namespace": "backend", "status": "Available"},
 				},
 			})
 		}).Methods("GET")
 
-		// Mock services endpoint
 		protected.HandleFunc("/services", func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(map[string]interface{}{
 				"items": []map[string]interface{}{
-					{
-						"name":      "nginx-service",
-						"namespace": "default",
-						"status":    "Active",
-					},
-					{
-						"name":      "api-service",
-						"namespace": "backend",
-						"status":    "Active",
-					},
+					{"name": "nginx-service", "namespace": "default", "status": "Active"},
+					{"name": "api-service", "namespace": "backend", "status": "Active"},
 				},
 			})
 		}).Methods("GET")
 
-		// Mock nodes endpoint
 		protected.HandleFunc("/nodes", func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(map[string]interface{}{
 				"items": []map[string]interface{}{
-					{
-						"name":   "node-1",
-						"status": "Ready",
-					},
-					{
-						"name":   "node-2",
-						"status": "Ready",
-					},
+					{"name": "node-1", "status": "Ready"},
+					{"name": "node-2", "status": "Ready"},
 				},
 			})
 		}).Methods("GET")
 
-		// Mock events endpoint
 		protected.HandleFunc("/events", func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(map[string]interface{}{
@@ -162,13 +90,12 @@ func NewRouter(clientset *kubernetes.Clientset, metricsClient *metricsclientset.
 						"reason":        "Created",
 						"message":       "Pod nginx-pod created successfully",
 						"type":          "Normal",
-						"lastTimestamp": "2024-01-01T10:00:00Z",
+						"lastTimestamp": time.Now().Format(time.RFC3339),
 					},
 				},
 			})
 		}).Methods("GET")
 
-		// Add a simple health check endpoint when Kubernetes is not available
 		router.HandleFunc("/api/health", func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
@@ -176,7 +103,7 @@ func NewRouter(clientset *kubernetes.Clientset, metricsClient *metricsclientset.
 		}).Methods("GET")
 	}
 
-	// CORS
+	// Enable CORS
 	corsHandler := cors.New(cors.Options{
 		AllowedOrigins:   []string{"*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},

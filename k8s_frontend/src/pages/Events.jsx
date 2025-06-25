@@ -110,22 +110,18 @@ const Events = () => {
       flex: 1.2,
       renderCell: (params) => {
         const value = params.value;
-        console.log('renderCell received:', value, typeof value);
-        
-        // Handle null, undefined, or empty values
-        if (!value) {
+        // Handle null, undefined, empty, or invalid values
+        if (!value || value.trim() === '') {
           return 'N/A';
         }
-        
         try {
           const date = new Date(value);
-          if (isNaN(date.getTime())) {
-            return 'Invalid date';
+          // Treat Unix epoch or invalid/very old dates as N/A
+          if (isNaN(date.getTime()) || date.getFullYear() < 1971) {
+            return 'N/A';
           }
-          
           return `${formatDistanceToNow(date)} ago`;
         } catch (error) {
-          console.error('Error formatting date:', error);
           return 'N/A';
         }
       },

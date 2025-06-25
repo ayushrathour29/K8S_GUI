@@ -32,8 +32,16 @@ func ListEvents(clientset *kubernetes.Clientset) http.HandlerFunc {
 				Type:           e.Type,
 				InvolvedObject: e.InvolvedObject.Kind + "/" + e.InvolvedObject.Name,
 				FirstTimestamp: e.FirstTimestamp.Time.Format(time.RFC3339),
-				LastTimestamp:  e.LastTimestamp.Time.Format(time.RFC3339),
-				Count:          e.Count,
+				LastTimestamp: func() string {
+					if !e.LastTimestamp.IsZero() {
+						return e.LastTimestamp.Time.Format(time.RFC3339)
+					}
+					if !e.FirstTimestamp.IsZero() {
+						return e.FirstTimestamp.Time.Format(time.RFC3339)
+					}
+					return ""
+				}(),
+				Count: e.Count,
 			})
 		}
 
@@ -67,8 +75,16 @@ func ListEventsByNamespace(clientset *kubernetes.Clientset) http.HandlerFunc {
 				Type:           e.Type,
 				InvolvedObject: e.InvolvedObject.Kind + "/" + e.InvolvedObject.Name,
 				FirstTimestamp: e.FirstTimestamp.Time.Format(time.RFC3339),
-				LastTimestamp:  e.LastTimestamp.Time.Format(time.RFC3339),
-				Count:          e.Count,
+				LastTimestamp: func() string {
+					if !e.LastTimestamp.IsZero() {
+						return e.LastTimestamp.Time.Format(time.RFC3339)
+					}
+					if !e.FirstTimestamp.IsZero() {
+						return e.FirstTimestamp.Time.Format(time.RFC3339)
+					}
+					return ""
+				}(),
+				Count: e.Count,
 			})
 		}
 
